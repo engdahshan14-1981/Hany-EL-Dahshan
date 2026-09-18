@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محلل الصور الذكي — تقارير AI وتحويل 2D إلى 3D</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/three/examples/jsm/controls/OrbitControls.js",
+    "three/addons/exporters/GLTFExporter.js": "./vendor/three/examples/jsm/exporters/GLTFExporter.js"
+  }
+}
+</script>
+<style>
+  :root{
+    --bg:#0b0f17;
+    --bg-alt:#11172400;
+    --panel:#141b29;
+    --panel-2:#1a2233;
+    --border:#263048;
+    --text:#e8edf7;
+    --text-dim:#93a1bd;
+    --accent:#7c5cff;
+    --accent-2:#25d0d6;
+    --accent-grad:linear-gradient(135deg,#7c5cff,#25d0d6);
+    --danger:#ff5c7a;
+    --ok:#3ddc97;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #22284a55, transparent),
+      radial-gradient(1000px 500px at 110% 10%, #12333355, transparent),
+      var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI","Tahoma",system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+  }
+  [dir="ltr"] body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;}
+  a{color:var(--accent-2);}
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 28px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:rgba(11,15,23,.85);backdrop-filter:blur(10px);
+    z-index:50;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .logo{
+    width:38px;height:38px;border-radius:10px;background:var(--accent-grad);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#0b0f17;
+    box-shadow:0 6px 18px -6px #7c5cff88;
+  }
+  .brand h1{font-size:17px;margin:0;font-weight:700;}
+  .brand p{margin:0;font-size:12px;color:var(--text-dim);}
+  .top-actions{display:flex;gap:10px;align-items:center;}
+  button{
+    font-family:inherit;cursor:pointer;border:1px solid var(--border);
+    background:var(--panel-2);color:var(--text);border-radius:10px;
+    padding:9px 16px;font-size:13.5px;transition:.15s;display:inline-flex;align-items:center;gap:8px;
+  }
+  button:hover{border-color:#3a4770;transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  button.primary{background:var(--accent-grad);border:none;color:#0b0f17;font-weight:700;}
+  button.primary:hover{filter:brightness(1.08);}
+  button.ghost{background:transparent;}
+  button.small{padding:6px 10px;font-size:12px;}
+  select,input[type=text],input[type=password]{
+    font-family:inherit;background:var(--panel-2);border:1px solid var(--border);
+    color:var(--text);border-radius:10px;padding:9px 12px;font-size:13.5px;
+  }
+  main{max-width:1280px;margin:0 auto;padding:26px 28px 80px;}
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;}
+  @media (max-width:960px){.grid{grid-template-columns:1fr;}}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;
+  }
+  .card h2{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-grad);}
+  .dropzone{
+    border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;
+    color:var(--text-dim);cursor:pointer;transition:.15s;position:relative;overflow:hidden;
+    min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  }
+  .dropzone.drag{border-color:var(--accent);background:#7c5cff14;}
+  .dropzone img{max-width:100%;max-height:220px;border-radius:8px;object-fit:contain;}
+  .dropzone .hint{font-size:12.5px;}
+  .file-meta{font-size:12px;color:var(--text-dim);margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
+  .field input,.field select{width:100%;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  .actions{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .status-line{font-size:12.5px;color:var(--text-dim);display:flex;align-items:center;gap:8px;min-height:18px;}
+  .spinner{
+    width:14px;height:14px;border-radius:50%;border:2px solid #3a4770;
+    border-top-color:var(--accent-2);animation:spin 0.8s linear infinite;flex:none;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .progressbar{height:6px;border-radius:4px;background:#1c2436;overflow:hidden;margin-top:6px;}
+  .progressbar > div{height:100%;background:var(--accent-grad);width:0%;transition:width .2s;}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+  .tab-btn{
+    background:transparent;border:none;border-bottom:2px solid transparent;
+    border-radius:0;padding:10px 6px;color:var(--text-dim);font-size:13.5px;
+  }
+  .tab-btn.active{color:var(--text);border-bottom-color:var(--accent);font-weight:700;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  .report{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;
+    padding:22px;min-height:260px;line-height:1.9;font-size:14.5px;
+  }
+  .report h1,.report h2,.report h3{color:var(--text);margin:18px 0 8px;}
+  .report h1{font-size:19px;}
+  .report h2{font-size:16.5px;background:var(--accent-grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .report h3{font-size:14.5px;color:var(--accent-2);}
+  .report ul{padding-inline-start:22px;margin:8px 0;}
+  .report li{margin:5px 0;}
+  .report p{margin:8px 0;color:#d6ddef;}
+  .report strong{color:#fff;}
+  .report code{background:#0b0f17;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12.5px;}
+  .empty-state{color:var(--text-dim);text-align:center;padding:60px 20px;font-size:14px;}
+  .empty-state .big{font-size:40px;margin-bottom:10px;display:block;}
+  #viewer-wrap{
+    background:#05070c;border:1px solid var(--border);border-radius:12px;
+    height:480px;position:relative;overflow:hidden;
+  }
+  #viewer-wrap canvas{display:block;width:100%;height:100%;}
+  .viewer-hint{
+    position:absolute;bottom:10px;inset-inline-start:12px;font-size:11.5px;color:#7f8bab;
+    background:#00000066;padding:5px 10px;border-radius:8px;pointer-events:none;
+  }
+  .viewer-controls{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+  }
+  .viewer-controls .field{margin:0;min-width:150px;flex:1;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;
+    border-radius:20px;border:1px solid var(--border);color:var(--text-dim);
+  }
+  .badge.ok{color:var(--ok);border-color:#3ddc9755;}
+  .badge.warn{color:#ffb84d;border-color:#ffb84d55;}
+  footer{
+    text-align:center;color:var(--text-dim);font-size:12px;padding:30px;border-top:1px solid var(--border);margin-top:30px;
+  }
+  .modal-backdrop{
+    position:fixed;inset:0;background:#000000aa;backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    padding:24px;max-width:440px;width:100%;
+  }
+  .modal h3{margin:0 0 14px;}
+  .modal .field small{color:var(--text-dim);display:block;margin-top:6px;line-height:1.6;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .toast{
+    position:fixed;bottom:20px;inset-inline-end:20px;background:var(--panel-2);
+    border:1px solid var(--border);border-inline-start:4px solid var(--accent);
+    padding:14px 18px;border-radius:10px;font-size:13.5px;max-width:340px;
+    box-shadow:0 10px 30px -10px #000a;z-index:200;display:none;
+  }
+  .toast.error{border-inline-start-color:var(--danger);}
+  .toast.show{display:block;animation:fadein .2s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo">AI</div>
+    <div>
+      <h1 id="t-title">محلل الصور الذكي</h1>
+      <p id="t-subtitle">تقارير Claude AI + تحويل الصور من 2D إلى 3D داخل المتصفح</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <select id="lang-select" class="small">
+      <option value="ar">العربية</option>
+      <option value="en">English</option>
+    </select>
+    <button id="settings-btn" class="ghost small">
+      <span>⚙️</span><span id="t-settings-btn">الإعدادات</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- LEFT: Upload + controls -->
+    <div class="card">
+      <h2><span class="dot"></span><span id="t-upload-title">١. ارفع صورة</span></h2>
+      <div id="dropzone" class="dropzone">
+        <img id="preview-img" style="display:none;">
+        <div id="dropzone-empty">
+          <div style="font-size:30px;">🖼️</div>
+          <div id="t-drop-hint">اسحب صورة هنا أو اضغط للاختيار</div>
+          <div class="hint" id="t-drop-hint-2">JPG · PNG · WEBP — حتى 15 ميجابايت</div>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none;">
+      <div class="file-meta" id="file-meta"></div>
+
+      <div class="actions">
+        <button id="analyze-btn" class="primary" disabled>
+          <span>🧠</span><span id="t-analyze-btn">توليد تقرير AI</span>
+        </button>
+        <button id="convert3d-btn" disabled>
+          <span>🧊</span><span id="t-convert-btn">تحويل إلى نموذج 3D</span>
+        </button>
+        <button id="reset-btn" class="ghost small">
+          <span id="t-reset-btn">إعادة تعيين</span>
+        </button>
+      </div>
+
+      <div class="status-line" id="status-line"></div>
+      <div class="progressbar" id="progress-wrap" style="display:none;"><div id="progress-bar"></div></div>
+    </div>
+
+    <!-- RIGHT: Tabs -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="report" id="t-tab-report">التقرير الذكي</button>
+        <button class="tab-btn" data-tab="viewer" id="t-tab-viewer">عارض 3D</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-report">
+        <div class="report" id="report-output">
+          <div class="empty-state">
+            <span class="big">📄</span>
+            <span id="t-report-empty">ارفع صورة ثم اضغط "توليد تقرير AI" لعرض تحليل تفصيلي هنا.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-viewer">
+        <div id="viewer-wrap">
+          <div class="empty-state" id="viewer-empty" style="padding-top:180px;">
+            <span class="big">🧊</span>
+            <span id="t-viewer-empty">اضغط "تحويل إلى نموذج 3D" لبناء مجسم تفاعلي من الصورة.</span>
+          </div>
+          <div class="viewer-hint" id="viewer-hint" style="display:none;" data-i18n="viewerHint"></div>
+        </div>
+        <div class="viewer-controls" id="viewer-controls" style="display:none;">
+          <div class="field">
+            <label id="t-depth-label">عمق التجسيم (Displacement)</label>
+            <input type="range" id="depth-scale" min="0" max="100" value="30">
+          </div>
+          <button id="wireframe-btn" class="small">🕸️ <span id="t-wireframe-btn">شبكي</span></button>
+          <button id="reset-cam-btn" class="small">🎥 <span id="t-resetcam-btn">إعادة الكاميرا</span></button>
+          <button id="export-glb-btn" class="small">⬇️ <span id="t-export-btn">تصدير GLB</span></button>
+          <button id="export-depth-btn" class="small">🗺️ <span id="t-exportdepth-btn">تحميل خريطة العمق</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span id="t-footer">تعمل كل المعالجة داخل متصفحك. مفتاح Claude API الخاص بك يُخزَّن محليًا فقط ولا يُرسل لأي جهة سوى Anthropic مباشرة.</span>
+</footer>
+
+<!-- Settings modal -->
+<div class="modal-backdrop" id="settings-modal">
+  <div class="modal">
+    <h3 id="t-settings-title">إعدادات Claude API</h3>
+    <div class="field">
+      <label id="t-apikey-label">مفتاح API</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-...">
+      <small id="t-apikey-hint">
+        يُحفظ المفتاح فقط في التخزين المحلي لمتصفحك (localStorage) ويُستخدم لإرسال طلبات مباشرة إلى Anthropic. احصل على مفتاح من
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
+      </small>
+    </div>
+    <div class="field">
+      <label id="t-model-label">النموذج</label>
+      <select id="model-select">
+        <option value="claude-sonnet-5">Claude Sonnet 5</option>
+        <option value="claude-opus-5">Claude Opus 5</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="settings-cancel"><span id="t-cancel-btn">إلغاء</span></button>
+      <button class="primary" id="settings-save"><span id="t-save-btn">حفظ</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* Three.js (vendored locally under /vendor/three, see import map above) is loaded
+   lazily — the report-generation feature must keep working even if the 3D
+   feature's dependencies fail to load for any reason. */
+let THREE = null, OrbitControls = null, GLTFExporter = null;
+let threeLoadPromise = null;
+function loadThree(){
+  if (!threeLoadPromise){
+    threeLoadPromise = Promise.all([
+      import("three"),
+      import("three/addons/controls/OrbitControls.js"),
+      import("three/addons/exporters/GLTFExporter.js"),
+    ]).then(([threeMod, controlsMod, exporterMod]) => {
+      THREE = threeMod;
+      OrbitControls = controlsMod.OrbitControls;
+      GLTFExporter = exporterMod.GLTFExporter;
+    });
+  }
+  return threeLoadPromise;
+}
+
+/* ------------------------------------------------------------------ */
+/* i18n                                                                */
+/* ------------------------------------------------------------------ */
+const I18N = {
+  ar: {
+    title: "محلل الصور الذكي",
+    subtitle: "تقارير Claude AI + تحويل الصور من 2D إلى 3D داخل المتصفح",
+    settingsBtn: "الإعدادات",
+    uploadTitle: "١. ارفع صورة",
+    dropHint: "اسحب صورة هنا أو اضغط للاختيار",
+    dropHint2: "JPG · PNG · WEBP — حتى 15 ميجابايت",
+    analyzeBtn: "توليد تقرير AI",
+    convertBtn: "تحويل إلى نموذج 3D",
+    resetBtn: "إعادة تعيين",
+    tabReport: "التقرير الذكي",
+    tabViewer: "عارض 3D",
+    reportEmpty: 'ارفع صورة ثم اضغط "توليد تقرير AI" لعرض تحليل تفصيلي هنا.',
+    viewerEmpty: 'اضغط "تحويل إلى نموذج 3D" لبناء مجسم تفاعلي من الصورة.',
+    viewerHint: "اسحب لتدوير المشهد — عجلة الفأرة للتكبير",
+    depthLabel: "عمق التجسيم (Displacement)",
+    wireframeBtn: "شبكي",
+    resetcamBtn: "إعادة الكاميرا",
+    exportBtn: "تصدير GLB",
+    exportdepthBtn: "تحميل خريطة العمق",
+    footer: "تعمل كل المعالجة داخل متصفحك. مفتاح Claude API الخاص بك يُخزَّن محليًا فقط ولا يُرسل لأي جهة سوى Anthropic مباشرة.",
+    settingsTitle: "إعدادات Claude API",
+    apikeyLabel: "مفتاح API",
+    apikeyHint: 'يُحفظ المفتاح فقط في التخزين المحلي لمتصفحك (localStorage) ويُستخدم لإرسال طلبات مباشرة إلى Anthropic. احصل على مفتاح من <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.',
+    modelLabel: "النموذج",
+    cancelBtn: "إلغاء",
+    saveBtn: "حفظ",
+    needKey: "أدخل مفتاح Claude API من الإعدادات أولًا",
+    needImage: "ارفع صورة أولًا",
+    analyzing: "جارٍ تحليل الصورة عبر Claude...",
+    analyzeDone: "تم توليد التقرير بنجاح",
+    analyzeError: "فشل توليد التقرير: ",
+    loadingModel: "تحميل نموذج تقدير العمق (مرة واحدة، قد يستغرق دقيقة)...",
+    estimatingDepth: "جارٍ تقدير العمق من الصورة...",
+    buildingMesh: "بناء المجسم ثلاثي الأبعاد...",
+    convert3dDone: "تم بناء النموذج ثلاثي الأبعاد",
+    convert3dError: "فشل تحويل الصورة إلى 3D: ",
+    fileTooBig: "الملف أكبر من 15 ميجابايت",
+    invalidFile: "الرجاء اختيار ملف صورة صالح",
+    settingsSaved: "تم حفظ الإعدادات",
+    glbExported: "تم تصدير الملف",
+    reportTitleFallback: "تقرير تحليل الصورة",
+  },
+  en: {
+    title: "AI Image Analyzer",
+    subtitle: "Claude AI reports + in-browser 2D-to-3D conversion",
+    settingsBtn: "Settings",
+    uploadTitle: "1. Upload an image",
+    dropHint: "Drag an image here or click to choose",
+    dropHint2: "JPG · PNG · WEBP — up to 15MB",
+    analyzeBtn: "Generate AI Report",
+    convertBtn: "Convert to 3D Model",
+    resetBtn: "Reset",
+    tabReport: "AI Report",
+    tabViewer: "3D Viewer",
+    reportEmpty: 'Upload an image then click "Generate AI Report" to see a detailed analysis here.',
+    viewerEmpty: 'Click "Convert to 3D Model" to build an interactive mesh from the image.',
+    viewerHint: "Drag to orbit — scroll to zoom",
+    depthLabel: "Displacement depth",
+    wireframeBtn: "Wireframe",
+    resetcamBtn: "Reset camera",
+    exportBtn: "Export GLB",
+    exportdepthBtn: "Download depth map",
+    footer: "All processing runs in your browser. Your Claude API key is stored locally only and sent directly to Anthropic, nowhere else.",
+    settingsTitle: "Claude API Settings",
+    apikeyLabel: "API Key",
+    apikeyHint: 'The key is stored only in your browser\'s localStorage and used to call Anthropic directly. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.',
+    modelLabel: "Model",
+    cancelBtn: "Cancel",
+    saveBtn: "Save",
+    needKey: "Enter your Claude API key in Settings first",
+    needImage: "Upload an image first",
+    analyzing: "Analyzing image with Claude...",
+    analyzeDone: "Report generated successfully",
+    analyzeError: "Failed to generate report: ",
+    loadingModel: "Loading depth-estimation model (one-time, may take a minute)...",
+    estimatingDepth: "Estimating depth from image...",
+    buildingMesh: "Building 3D mesh...",
+    convert3dDone: "3D model built successfully",
+    convert3dError: "Failed to convert image to 3D: ",
+    fileTooBig: "File is larger than 15MB",
+    invalidFile: "Please choose a valid image file",
+    settingsSaved: "Settings saved",
+    glbExported: "File exported",
+    reportTitleFallback: "Image Analysis Report",
+  }
+};
+let lang = localStorage.getItem("ai-img-lang") || "ar";
+
+function applyI18n(){
+  const dict = I18N[lang];
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.querySelectorAll("[id^='t-']").forEach(el=>{
+    const key = el.id.slice(2).replace(/-([a-z0-9])/g,(_,c)=>c.toUpperCase());
+    if (dict[key] !== undefined) el.innerHTML = dict[key];
+  });
+  document.getElementById("viewer-hint").innerHTML = dict.viewerHint;
+  document.getElementById("lang-select").value = lang;
+}
+document.getElementById("lang-select").addEventListener("change", e=>{
+  lang = e.target.value;
+  localStorage.setItem("ai-img-lang", lang);
+  applyI18n();
+});
+applyI18n();
+
+/* ------------------------------------------------------------------ */
+/* Toast + status helpers                                             */
+/* ------------------------------------------------------------------ */
+const toastEl = document.getElementById("toast");
+let toastTimer;
+function toast(msg, isError=false){
+  toastEl.textContent = msg;
+  toastEl.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove("show"), 4200);
+}
+const statusLine = document.getElementById("status-line");
+function setStatus(msg, busy=false){
+  statusLine.innerHTML = busy ? `<div class="spinner"></div><span>${msg}</span>` : (msg ? `<span>${msg}</span>` : "");
+}
+const progressWrap = document.getElementById("progress-wrap");
+const progressBar = document.getElementById("progress-bar");
+function setProgress(pct){
+  if (pct === null){ progressWrap.style.display="none"; return; }
+  progressWrap.style.display="block";
+  progressBar.style.width = Math.max(0,Math.min(100,pct)) + "%";
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings modal                                                     */
+/* ------------------------------------------------------------------ */
+const settingsModal = document.getElementById("settings-modal");
+const apiKeyInput = document.getElementById("api-key-input");
+const modelSelect = document.getElementById("model-select");
+
+function loadSettings(){
+  apiKeyInput.value = localStorage.getItem("ai-img-apikey") || "";
+  modelSelect.value = localStorage.getItem("ai-img-model") || "claude-sonnet-5";
+}
+document.getElementById("settings-btn").addEventListener("click", ()=>{
+  loadSettings();
+  settingsModal.classList.add("open");
+});
+document.getElementById("settings-cancel").addEventListener("click", ()=> settingsModal.classList.remove("open"));
+document.getElementById("settings-save").addEventListener("click", ()=>{
+  localStorage.setItem("ai-img-apikey", apiKeyInput.value.trim());
+  localStorage.setItem("ai-img-model", modelSelect.value);
+  settingsModal.classList.remove("open");
+  toast(I18N[lang].settingsSaved);
+});
+settingsModal.addEventListener("click", e=>{ if (e.target === settingsModal) settingsModal.classList.remove("open"); });
+loadSettings();
+
+/* ------------------------------------------------------------------ */
+/* Tabs                                                                */
+/* ------------------------------------------------------------------ */
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "viewer") onViewerTabShown();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* File handling                                                      */
+/* ------------------------------------------------------------------ */
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("file-input");
+const previewImg = document.getElementById("preview-img");
+const dropzoneEmpty = document.getElementById("dropzone-empty");
+const fileMeta = document.getElementById("file-meta");
+const analyzeBtn = document.getElementById("analyze-btn");
+const convert3dBtn = document.getElementById("convert3d-btn");
+
+let currentFile = null;      // File
+let currentDataUrl = null;   // data:...;base64,....
+let currentImage = null;     // HTMLImageElement
+
+dropzone.addEventListener("click", ()=> fileInput.click());
+["dragenter","dragover"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.add("drag"); });
+});
+["dragleave","drop"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.remove("drag"); });
+});
+dropzone.addEventListener("drop", e=>{
+  const f = e.dataTransfer.files?.[0];
+  if (f) loadFile(f);
+});
+fileInput.addEventListener("change", e=>{
+  const f = e.target.files?.[0];
+  if (f) loadFile(f);
+});
+
+function loadFile(file){
+  if (!file.type.startsWith("image/")){ toast(I18N[lang].invalidFile, true); return; }
+  if (file.size > 15 * 1024 * 1024){ toast(I18N[lang].fileTooBig, true); return; }
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = () => {
+    currentDataUrl = reader.result;
+    previewImg.src = currentDataUrl;
+    previewImg.style.display = "block";
+    dropzoneEmpty.style.display = "none";
+    const img = new Image();
+    img.onload = () => {
+      currentImage = img;
+      fileMeta.innerHTML = `
+        <span class="badge">${file.name}</span>
+        <span class="badge">${(file.size/1024).toFixed(0)} KB</span>
+        <span class="badge">${img.naturalWidth}×${img.naturalHeight}</span>`;
+      analyzeBtn.disabled = false;
+      convert3dBtn.disabled = false;
+    };
+    img.src = currentDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById("reset-btn").addEventListener("click", ()=>{
+  currentFile = null; currentDataUrl = null; currentImage = null;
+  previewImg.style.display="none"; previewImg.src="";
+  dropzoneEmpty.style.display="flex";
+  fileMeta.innerHTML = "";
+  analyzeBtn.disabled = true; convert3dBtn.disabled = true;
+  document.getElementById("report-output").innerHTML =
+    `<div class="empty-state"><span class="big">📄</span><span>${I18N[lang].reportEmpty}</span></div>`;
+  resetViewer();
+  setStatus(""); setProgress(null);
+});
+
+/* ------------------------------------------------------------------ */
+/* Minimal markdown renderer (headings, bold, italics, lists, paras)  */
+/* ------------------------------------------------------------------ */
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function inlineMd(s){
+  s = escapeHtml(s);
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  s = s.replace(/`(.+?)`/g, "<code>$1</code>");
+  return s;
+}
+function mdToHtml(md){
+  const lines = md.split(/\r?\n/);
+  let html = "";
+  let inList = false;
+  for (let raw of lines){
+    const line = raw.trim();
+    if (!line){ if (inList){ html += "</ul>"; inList=false; } continue; }
+    let m;
+    if ((m = line.match(/^#{1,3}\s+(.*)/))){
+      if (inList){ html += "</ul>"; inList=false; }
+      const level = line.match(/^#+/)[0].length;
+      html += `<h${Math.min(level+1,3)}>${inlineMd(m[1])}</h${Math.min(level+1,3)}>`;
+    } else if ((m = line.match(/^[-*•]\s+(.*)/))){
+      if (!inList){ html += "<ul>"; inList = true; }
+      html += `<li>${inlineMd(m[1])}</li>`;
+    } else {
+      if (inList){ html += "</ul>"; inList=false; }
+      html += `<p>${inlineMd(line)}</p>`;
+    }
+  }
+  if (inList) html += "</ul>";
+  return html;
+}
+
+/* ------------------------------------------------------------------ */
+/* Claude vision report                                               */
+/* ------------------------------------------------------------------ */
+analyzeBtn.addEventListener("click", async ()=>{
+  const apiKey = localStorage.getItem("ai-img-apikey") || "";
+  const model = localStorage.getItem("ai-img-model") || "claude-sonnet-5";
+  if (!apiKey){ toast(I18N[lang].needKey, true); settingsModal.classList.add("open"); return; }
+  if (!currentDataUrl){ toast(I18N[lang].needImage, true); return; }
+
+  analyzeBtn.disabled = true;
+  setStatus(I18N[lang].analyzing, true);
+  try {
+    const [meta, b64] = currentDataUrl.split(",");
+    const mediaType = meta.match(/data:(.*);base64/)[1];
+
+    const promptAr = `أنت محلل صور خبير. افحص هذه الصورة بعناية واكتب تقريرًا احترافيًا منظمًا بصيغة Markdown يتضمن الأقسام التالية بالضبط بهذا الترتيب:
+## الوصف العام
+وصف موجز وواضح لمحتوى الصورة.
+## العناصر المكتشفة
+قائمة نقطية بأهم العناصر/الأجسام/الأشخاص الظاهرة.
+## تحليل الألوان والإضاءة
+وصف موجز للألوان السائدة والإضاءة والمزاج العام.
+## تقييم التكوين الفني
+تعليق على زاوية التصوير، التوازن، نقطة التركيز.
+## الجودة التقنية
+تعليق على الحدة، التعرض الضوئي، الضوضاء إن وُجدت.
+## إمكانية التحويل لـ 3D
+تقييم مدى ملاءمة الصورة لاستخراج خريطة عمق وبناء نموذج ثلاثي الأبعاد (مثلاً: صور ذات مواضيع واضحة وخلفية بسيطة تعطي نتائج أفضل).
+## توصيات
+نصائح عملية لتحسين الصورة أو استخدامها.
+اكتب بالكامل باللغة العربية وبأسلوب احترافي موجز.`;
+
+    const promptEn = `You are an expert image analyst. Carefully inspect this image and write a professional, structured Markdown report with exactly these sections, in this order:
+## General Description
+## Detected Elements
+## Color & Lighting Analysis
+## Composition Assessment
+## Technical Quality
+## 3D Conversion Suitability
+Assess how suitable this image is for depth-map extraction and 3D mesh reconstruction (clear subject + simple background works best).
+## Recommendations
+Write entirely in English, professional and concise.`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1500,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+            { type: "text", text: lang === "ar" ? promptAr : promptEn }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok){
+      const errBody = await res.text();
+      throw new Error(`HTTP ${res.status} — ${errBody.slice(0,300)}`);
+    }
+    const data = await res.json();
+    const text = (data.content || []).map(b=>b.text || "").join("\n").trim();
+    document.getElementById("report-output").innerHTML = mdToHtml(text || I18N[lang].reportTitleFallback);
+    setStatus(I18N[lang].analyzeDone);
+    toast(I18N[lang].analyzeDone);
+  } catch (err){
+    console.error(err);
+    setStatus("");
+    toast(I18N[lang].analyzeError + err.message, true);
+  } finally {
+    analyzeBtn.disabled = false;
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Three.js viewer                                                    */
+/* ------------------------------------------------------------------ */
+const viewerWrap = document.getElementById("viewer-wrap");
+const viewerEmpty = document.getElementById("viewer-empty");
+const viewerHint = document.getElementById("viewer-hint");
+const viewerControls = document.getElementById("viewer-controls");
+
+let renderer, scene, camera, controls, mesh, animId;
+let baseGeomPositions = null;   // Float32Array of original (z=0) positions
+let depthValues = null;         // Float32Array normalized 0..1 per vertex, same order
+let depthCanvasEl = null;       // canvas holding raw depth map (for export)
+const GRID = 160;                // mesh resolution
+
+function initThree(){
+  if (renderer) return;
+  const w = viewerWrap.clientWidth, h = viewerWrap.clientHeight;
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  viewerWrap.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05070c);
+
+  camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
+  camera.position.set(0, 0, 3.2);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+  dir.position.set(2, 3, 4);
+  scene.add(dir);
+
+  window.addEventListener("resize", onResize);
+
+  (function animate(){
+    animId = requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+}
+function onResize(){
+  if (!renderer) return;
+  const w = viewerWrap.clientWidth, h = viewerWrap.clientHeight;
+  if (w === 0 || h === 0) return;
+  renderer.setSize(w, h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+function onViewerTabShown(){ onResize(); }
+
+function resetViewer(){
+  if (mesh){ scene?.remove(mesh); mesh.geometry.dispose(); mesh.material.map?.dispose(); mesh.material.dispose(); mesh = null; }
+  baseGeomPositions = null; depthValues = null; depthCanvasEl = null;
+  viewerControls.style.display = "none";
+  viewerHint.style.display = "none";
+  viewerEmpty.style.display = "block";
+}
+
+/* ---- Depth estimation (transformers.js, lazy-loaded) ---- */
+let depthPipelinePromise = null;
+async function getDepthPipeline(){
+  if (!depthPipelinePromise){
+    setStatus(I18N[lang].loadingModel, true);
+    setProgress(0);
+    depthPipelinePromise = import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2")
+      .then(({ pipeline, env }) => {
+        env.allowLocalModels = false;
+        return pipeline("depth-estimation", "Xenova/depth-anything-small-hf", {
+          progress_callback: (p) => {
+            if (p.status === "progress" && p.total){
+              setProgress((p.loaded / p.total) * 100);
+            }
+          }
+        });
+      });
+  }
+  return depthPipelinePromise;
+}
+
+function rawDepthToCanvas(depthOut, targetW, targetH){
+  // depthOut.depth is a RawImage-like object: {data, width, height, channels}
+  const raw = depthOut.depth;
+  const srcW = raw.width, srcH = raw.height;
+  const channels = raw.channels || Math.round(raw.data.length / (srcW*srcH));
+  const srcCanvas = document.createElement("canvas");
+  srcCanvas.width = srcW; srcCanvas.height = srcH;
+  const sctx = srcCanvas.getContext("2d");
+  const imgData = sctx.createImageData(srcW, srcH);
+  for (let i = 0; i < srcW*srcH; i++){
+    const v = raw.data[i*channels];
+    imgData.data[i*4] = v; imgData.data[i*4+1] = v; imgData.data[i*4+2] = v; imgData.data[i*4+3] = 255;
+  }
+  sctx.putImageData(imgData, 0, 0);
+
+  const outCanvas = document.createElement("canvas");
+  outCanvas.width = targetW; outCanvas.height = targetH;
+  const octx = outCanvas.getContext("2d");
+  octx.drawImage(srcCanvas, 0, 0, targetW, targetH);
+  return outCanvas;
+}
+
+function buildMeshFromDepth(image, depthCanvas){
+  const w = image.naturalWidth, h = image.naturalHeight;
+  const aspect = w / h;
+
+  // sample depth at GRID resolution
+  const sampleCanvas = document.createElement("canvas");
+  sampleCanvas.width = GRID; sampleCanvas.height = GRID;
+  const sctx = sampleCanvas.getContext("2d");
+  sctx.drawImage(depthCanvas, 0, 0, GRID, GRID);
+  const depthData = sctx.getImageData(0, 0, GRID, GRID).data;
+
+  const planeW = aspect >= 1 ? 2 * aspect : 2;
+  const planeH = aspect >= 1 ? 2 : 2 / aspect;
+
+  const geometry = new THREE.PlaneGeometry(planeW, planeH, GRID - 1, GRID - 1);
+  const posAttr = geometry.attributes.position;
+  const vertCount = posAttr.count;
+  depthValues = new Float32Array(vertCount);
+  baseGeomPositions = new Float32Array(posAttr.array); // copy of x,y,z(=0)
+
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < vertCount; i++){
+    const col = i % GRID;
+    const rowFromTop = Math.floor(i / GRID);
+    // PlaneGeometry vertices run bottom-to-top in rows; sample matching image row (flip)
+    const sampleRow = GRID - 1 - rowFromTop;
+    const px = (sampleRow * GRID + col) * 4;
+    const v = depthData[px] / 255; // 0..1, higher = closer (depth-anything convention)
+    depthValues[i] = v;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  const range = Math.max(max - min, 1e-6);
+  for (let i = 0; i < vertCount; i++){
+    depthValues[i] = (depthValues[i] - min) / range;
+  }
+
+  const texture = new THREE.CanvasTexture(imageToCanvas(image));
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    roughness: 0.85,
+    metalness: 0.02,
+  });
+
+  if (mesh){ scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+  mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  applyDisplacement(parseFloat(document.getElementById("depth-scale").value) / 100);
+
+  camera.position.set(0, 0, Math.max(planeW, planeH) * 1.4);
+  controls.target.set(0,0,0);
+  controls.update();
+}
+
+function imageToCanvas(img){
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  c.getContext("2d").drawImage(img, 0, 0);
+  return c;
+}
+
+function applyDisplacement(strength){
+  if (!mesh || !baseGeomPositions || !depthValues) return;
+  const posAttr = mesh.geometry.attributes.position;
+  const arr = posAttr.array;
+  const maxDisp = 0.9 * strength;
+  for (let i = 0; i < depthValues.length; i++){
+    const zBase = baseGeomPositions[i*3+2];
+    arr[i*3+2] = zBase + depthValues[i] * maxDisp;
+  }
+  posAttr.needsUpdate = true;
+  mesh.geometry.computeVertexNormals();
+}
+
+document.getElementById("depth-scale").addEventListener("input", e=>{
+  applyDisplacement(parseFloat(e.target.value)/100);
+});
+document.getElementById("wireframe-btn").addEventListener("click", ()=>{
+  if (mesh) mesh.material.wireframe = !mesh.material.wireframe;
+});
+document.getElementById("reset-cam-btn").addEventListener("click", ()=>{
+  if (!mesh) return;
+  mesh.geometry.computeBoundingSphere();
+  const r = mesh.geometry.boundingSphere.radius;
+  camera.position.set(0, 0, r * 2.6);
+  controls.target.set(0,0,0);
+  controls.update();
+});
+document.getElementById("export-glb-btn").addEventListener("click", ()=>{
+  if (!mesh) return;
+  const exporter = new GLTFExporter();
+  exporter.parse(mesh, (result)=>{
+    const blob = new Blob([result], { type: "model/gltf-binary" });
+    downloadBlob(blob, "model-3d.glb");
+    toast(I18N[lang].glbExported);
+  }, (err)=> console.error(err), { binary: true });
+});
+document.getElementById("export-depth-btn").addEventListener("click", ()=>{
+  if (!depthCanvasEl) return;
+  depthCanvasEl.toBlob(blob => downloadBlob(blob, "depth-map.png"));
+});
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 2000);
+}
+
+convert3dBtn.addEventListener("click", async ()=>{
+  if (!currentImage){ toast(I18N[lang].needImage, true); return; }
+  convert3dBtn.disabled = true;
+  document.querySelector('.tab-btn[data-tab="viewer"]').click();
+  viewerEmpty.style.display = "none";
+  try {
+    await loadThree();
+    const depther = await getDepthPipeline();
+    setStatus(I18N[lang].estimatingDepth, true);
+    setProgress(null);
+    const depthOut = await depther(currentDataUrl);
+
+    setStatus(I18N[lang].buildingMesh, true);
+    depthCanvasEl = rawDepthToCanvas(depthOut, currentImage.naturalWidth, currentImage.naturalHeight);
+
+    initThree();
+    buildMeshFromDepth(currentImage, depthCanvasEl);
+
+    viewerControls.style.display = "flex";
+    viewerHint.style.display = "block";
+    onResize();
+    setStatus(I18N[lang].convert3dDone);
+    toast(I18N[lang].convert3dDone);
+  } catch (err){
+    console.error(err);
+    viewerEmpty.style.display = "block";
+    setStatus("");
+    toast(I18N[lang].convert3dError + err.message, true);
+  } finally {
+    convert3dBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

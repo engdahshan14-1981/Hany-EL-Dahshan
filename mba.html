@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف الـ MBA</title>
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --panel-2:#f0eee8; --border:#dedad0;
+  --text:#1d1c1a; --dim:#6b6860; --accent:#1f6f5c; --accent-soft:#e2f0eb;
+  --s2:#b4561f; --s2-soft:#fbeadf; --chip:#ece9e1; --ok:#2f7d4f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141412; --panel:#1d1d1a; --panel-2:#252521; --border:#34332e;
+    --text:#ecebe6; --dim:#a19e94; --accent:#5cc3a6; --accent-soft:#1d332c;
+    --s2:#f0965c; --s2-soft:#3a2619; --chip:#2b2a26; --ok:#6fcf97;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141412; --panel:#1d1d1a; --panel-2:#252521; --border:#34332e;
+  --text:#ecebe6; --dim:#a19e94; --accent:#5cc3a6; --accent-soft:#1d332c;
+  --s2:#f0965c; --s2-soft:#3a2619; --chip:#2b2a26; --ok:#6fcf97;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,system-ui,sans-serif;line-height:1.6}
+a{color:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{margin:0;font-size:1.7rem}
+.sub{color:var(--dim);margin:4px 0 0;font-size:.95rem}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+input[type=search]{padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--text);min-width:220px;font:inherit}
+button{font:inherit;cursor:pointer}
+.tbtn{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--text)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 22px;border-bottom:1px solid var(--border)}
+.tab{padding:10px 14px;border:0;background:none;color:var(--dim);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected=true]{color:var(--text);border-color:var(--s2);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-size:1.5rem}
+.stat span{color:var(--dim);font-size:.85rem}
+.sem{margin-bottom:34px}
+.sem-head{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.sem-head h2{margin:0;font-size:1.3rem}
+.badge{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--dim)}
+.badge.hot{background:var(--s2-soft);color:var(--s2);font-weight:600}
+.course{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.course.s2{border-inline-start:4px solid var(--s2)}
+.c-head{padding:14px 16px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.c-head h3{margin:0;font-size:1.1rem}
+.c-meta{color:var(--dim);font-size:.88rem}
+.c-body{padding:0 16px 14px}
+.note{background:var(--panel-2);border-radius:10px;padding:10px 12px;font-size:.92rem;margin-bottom:10px}
+.grades{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.g{background:var(--accent-soft);color:var(--accent);padding:3px 10px;border-radius:999px;font-size:.85rem}
+.group-title{font-size:.82rem;color:var(--dim);margin:12px 0 4px;font-weight:600}
+ul.files{list-style:none;margin:0;padding:0}
+ul.files li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--border)}
+ul.files li:first-child{border-top:0}
+.ic{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:.7rem;font-weight:700;background:var(--chip);color:var(--dim)}
+.f-main{min-width:0;flex:1}
+.f-main a{text-decoration:none;font-weight:500;word-break:break-word}
+.f-main a:hover{text-decoration:underline}
+.f-desc{color:var(--dim);font-size:.85rem}
+.f-date{color:var(--dim);font-size:.8rem;white-space:nowrap}
+.check{list-style:none;padding:0;margin:0}
+.check li{display:flex;gap:8px;padding:4px 0;font-size:.92rem}
+.check input{margin-top:5px;accent-color:var(--ok)}
+.check li.done span{color:var(--dim);text-decoration:line-through}
+.empty{color:var(--dim);padding:20px;text-align:center}
+footer{color:var(--dim);font-size:.82rem;margin-top:30px;border-top:1px solid var(--border);padding-top:12px}
+@media (max-width:560px){input[type=search]{min-width:0;flex:1}.tools{width:100%;flex-wrap:nowrap}.f-date{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>ملف الـ MBA</h1>
+      <p class="sub">كل مواد ومحاضرات وملفات الماجستير في مكان واحد، مرتبة بالسميستر والمادة. التركيز على السميستر التاني (Fall 2026).</p>
+    </div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="ابحث في الملفات…" aria-label="بحث">
+      <button class="tbtn" id="theme" type="button" aria-label="تبديل الوضع">◐</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <main id="out"></main>
+
+  <footer>
+    المصدر: ملفات Google Drive الخاصة بك والمشاركة معك (جمعت في 21 نوفمبر 2026). الروابط بتفتح الملف في Drive مباشرة.
+    اسم مادة الموارد البشرية مستنتج من ملاحظات السبورة، عدّله لو الاسم الرسمي مختلف.
+  </footer>
+</div>
+
+<script>
+const F = id => "https://drive.google.com/file/d/" + id + "/view";
+const D = id => "https://docs.google.com/document/d/" + id + "/edit";
+const DIR = id => "https://drive.google.com/drive/folders/" + id;
+
+const DATA = [
+ {
+  id:"s2", title:"السميستر التاني — Fall 2026", period:"سبتمبر 2026 – الآن", current:true,
+  courses:[
+   {
+    name:"Marketing Management (MM_F26)", who:"د. خلود حمودة — Dr. Kholoud A. Hamouda", slot:"السبت — Slot 2",
+    note:"توزيع الدرجات: حضور 10 · أنشطة داخل المحاضرة (عرض ومناقشة) 20 · ميدترم 30 (Case Study 10 + Project Part One 20) · فاينال 40.",
+    grades:["حضور 10","أنشطة 20","ميدترم 30","فاينال 40"],
+    checklist:{
+      title:"مشروع المرحلة الأولى (SO من SOSTAC) — 20 درجة في الميدترم",
+      items:[
+        "اختيار شركة حقيقية ومنتج واحد في سوق واحد",
+        "خلفية الشركة: الرؤية والرسالة، المحفظة (Width/Length/Depth/Consistency)، PLC، مصفوفة Mendelow",
+        "تحليل PESTLE",
+        "تحليل السوق والتقسيم (جغرافي، ديموغرافي، VALS، سلوكي)",
+        "تحليل العميل: Buyer Persona أو B2B DMU، والقنوات، وCSAT/NPS/CES",
+        "المنافسة: Porter's Five Forces + CPM لأهم 3–5 منافسين + Perceptual Map + Hooley",
+        "تحليل داخلي: Market Orientation audit (5 مكونات) + المزيج التسويقي الحالي",
+        "SWOT + 3–4 استنتاجات TOWS",
+        "4–6 أهداف SMART (Sell / Serve / Sizzle / Save / Soothe)",
+        "20 مرجع على الأقل بنظام APA 7، وملف PDF واحد للجروب على الـ Classroom"
+      ]
+    },
+    groups:[
+     {t:"المحاضرات (Slides)", files:[
+       {n:"MM_S26_L1.pdf — Lecture 1", d:"تعريف التسويق، مفاهيم الإنتاج والمنتج والبيع والتسويق والتسويق المجتمعي، وتوزيع الدرجات", u:F("1zAmNs3s7e_dXWqVKRGVxMFiJGHKSKi4w"), dt:"2026-09-13", k:"pdf"},
+       {n:"MM_F26.pdf — Lecture 2", d:"Needs / Wants / Demands، هرم ماسلو، Elements of Value", u:F("1Zcn5bOZ34Btm8Ggv_CQgoAcLTtCJMKjR"), dt:"2026-09-20", k:"pdf"},
+       {n:"MO.pdf — Market Orientation", d:"مكونات التوجه السوقي الخمسة وأداة تقييمه (تحتاجها في المشروع)", u:F("1D4s6levOlFlfF897YXzYpIihIexKL5dk"), dt:"2026-09-20", k:"pdf"}
+     ]},
+     {t:"المشروع والتكليفات", files:[
+       {n:"F26_MM_Project_Part_One.pdf", d:"المطلوب كامل في المرحلة الأولى من المشروع (إطار SOSTAC)", u:F("1e1f5nY-fFjV4MBTJC76Mbu780SYnWoSy"), dt:"2026-09-20", k:"pdf"}
+     ]},
+     {t:"قراءات مطلوبة", files:[
+       {n:"Marketing Myopia — Theodore Levitt", d:"مقالة كلاسيكية من HBR", u:F("1n4Z-3Z0QEfT_s7wjMjhdsrYH-0uuPnWt"), dt:"2026-09-19", k:"pdf"},
+       {n:"The Elements of Consumer Value", d:"Almquist, Senior & Bloch — HBR", u:F("16G-f71sO7brzxD-w3m0BlT7pfOgqbZ6f"), dt:"2026-09-20", k:"pdf"}
+     ]},
+     {t:"فولدرات المحاضرات والتسجيلات", files:[
+       {n:"Lecture_One", d:"فولدر المحاضرة الأولى", u:DIR("10W1TaRewlMlOsBrfqaL_rU16LWRNyXQL"), dt:"2026-09-19", k:"dir"},
+       {n:"Lecture_Two", d:"فولدر المحاضرة التانية", u:DIR("15eDltcOmmDExXJOeCvEyH-C6M1yLGeIL"), dt:"2026-10-03", k:"dir"},
+       {n:"تسجيل المحاضرة التانية (video2749340855.mp4)", d:"فيديو ~850MB داخل فولدر Lecture_Two", u:F("1FWGSK7y9dyqLH-KwQo6kvHGX49c2MUqt"), dt:"2026-10-03", k:"vid"},
+       {n:"Lecture_Three", d:"فولدر المحاضرة التالتة", u:DIR("1ZRNDZ3JvEdcdW66dwqnWVK3eUJJYLvOk"), dt:"2026-10-17", k:"dir"},
+       {n:"Lecture_Four", d:"فولدر المحاضرة الرابعة", u:DIR("1jSPIoiwM3zqzchRc0Bj2HUwBd4IcBBoy"), dt:"2026-10-31", k:"dir"},
+       {n:"F26_MM_Saturdays_Slot2 (Classroom)", d:"فولدر الـ Google Classroom الخاص بالمادة", u:DIR("1qz-bO8lfxdA6JkQ3lmbmBX7Q818hbMNPrOVW3I07N3jzhWt_8dgNLu4oa6Rn_nDtZAyvC0wA"), dt:"2026-10-03", k:"dir"}
+     ]}
+    ]
+   },
+   {
+    name:"Strategic HRM — تخطيط الموارد البشرية", who:"ملاحظات وشرح السبورة", slot:"محاضرة 30 أكتوبر 2026",
+    note:"شروحات عملتها لصور السبورة: الخطة الاستراتيجية ← الأهداف، SHRP، تحليل الفجوة بين العرض والطلب (المتاح 220، المطلوب 450، يعني تعيين 230)، تدريب 40% من الموظفين على 6 شهور، خطة التعاقب، RBV، وVUCA.",
+    groups:[
+     {t:"الشروحات (Google Docs)", files:[
+       {n:"شرح — السبورة (الجزء الأول)", d:"Strategic Plan، Succession Plan، التنبؤ بالطلب، الهيكل (CEO / HODs)", u:D("1Sovj8ctFbcrkzP0f_U9t3DaXyiNiPaU0Ny9MsmggV-A"), dt:"2026-10-30", k:"doc"},
+       {n:"حلل — SHRP وتحليل الفجوة", d:"مقارنة العرض بالطلب واستراتيجية التوسع", u:D("1xcWa77dkDVd-PJ4BI8rR7Pqf0ZKIhpskvm_VVF8dXOU"), dt:"2026-10-30", k:"doc"},
+       {n:"شرح — السبورة كاملة", d:"RBV، تحليل الفجوة، إدارة المهارات، التفاوض", u:D("1nChF_-7Q6lhYwkNsVVLJajqJDx1at2VbLCEqZnCj2Jg"), dt:"2026-10-30", k:"doc"},
+       {n:"تحليل و شرح — الفجوة والتدريب", d:"تعيين 230، وتدريب 40% على 6 شهور", u:D("1IqqyzLPCMKigmK4tgVl6B_oEoXsLvyCW1Qq0DBDRWa8"), dt:"2026-10-30", k:"doc"},
+       {n:"VUCA", d:"Volatility / Uncertainty / Complexity / Ambiguity، والرد عليها بـ VUCA Prime", u:D("1ABVTCUBmWkw95fPcuEulPPnNce8EkgpslfAIq4dRUps"), dt:"2026-10-30", k:"doc"}
+     ]}
+    ]
+   },
+   {
+    name:"غير مصنّف", who:"تسجيل غالبًا تبع السميستر ده، بس مش واضح هو لأنهي مادة", slot:"",
+    groups:[
+     {t:"تسجيلات", files:[
+       {n:"video1557706228.mp4", d:"تسجيل اتشارك معاك يوم 20 أكتوبر (~436MB)", u:F("1ubBcGbwXVR-BsiOFMetVe4n6u5vl7Qf6"), dt:"2026-10-16", k:"vid"}
+     ]}
+    ]
+   }
+  ]
+ },
+ {
+  id:"s1", title:"السميستر الأول — Spring/Summer 2026", period:"أبريل – أغسطس 2026 · MBA Saturday morning · Groups 1A & 1B",
+  courses:[
+   {
+    name:"Contemporary Management", who:"Dr. Amgad Fahmy", slot:"الأكاديمية العربية — MBA",
+    groups:[
+     {t:"تسجيلات المحاضرات", files:[
+       {n:"Contemporary Management — lect1", d:"المحاضرة الأولى", u:F("1pE67WSUBHyEWpjw9vWwZY2y_ZW_GQM3M"), dt:"2026-04-05", k:"vid"},
+       {n:"Contemporary Management — lect1 (نسختك)", d:"نسخة في الـ Drive بتاعك", u:F("1q3SsqusDCoO8pgICoRMuMqqx_kpLUlLh"), dt:"2026-04-06", k:"vid"},
+       {n:"Contemporary Management — lect3", d:"", u:F("1NZaYe-6R8HlFSKF19-EEs98nSvwTrOzu"), dt:"2026-05-05", k:"vid"},
+       {n:"Contemporary Management — lect7", d:"", u:F("1c-IqcVl87eZt7lJpVcjTZvWowAkRd8r4"), dt:"2026-07-12", k:"vid"},
+       {n:"Contemporary Management — lect8", d:"", u:F("1xqQ-rFfbnMACgWsDRlR0jgeH034nDNwx"), dt:"2026-08-17", k:"vid"}
+     ]},
+     {t:"تكليفاتك وإجاباتك", files:[
+       {n:"SWOT analysis — Vision & Mission — Hany Eldahshan", d:"تكليف SWOT لاستراتيجية الـ IT", u:F("1Ee3ZjZncvkUV7q6Fh_5oUCwnIOE-sVFs"), dt:"2026-05-01", k:"pdf"},
+       {n:"Toyota Case Study — Answer (Final)", d:"TQM، الـ Toyota Way، مبادئ Deming الـ 14، Six Sigma", u:D("1YSj9juIsmBrJnrGP6Xgku6aS7EhtMQyK_yxgYKR8Pdc"), dt:"2026-08-22", k:"doc"}
+     ]},
+     {t:"شغل الزملاء (للمرجعة)", files:[
+       {n:"management 1A (فولدر التكليفات)", d:"", u:DIR("1asdFICqrAXx9IpB1B9PZfDYH27XNh4t2"), dt:"2026-05-01", k:"dir"},
+       {n:"SWOT — Hagar Rabiee — Group1A", d:"", u:F("1nCb3VIIHPFV8Irr7WgBXBdreZKRMMEk8"), dt:"2026-05-01", k:"pdf"},
+       {n:"SWOT — Sika — Peter Tharwat", d:"", u:F("1tRFRBjyYnpV5f2TCd-dcaZdaB1KxCe0w"), dt:"2026-05-01", k:"pdf"},
+       {n:"Hasan Abdelwahed assignment (18-Apr)", d:"", u:F("1VXia2-jvW8W3B4y6woSbbRoRIs3qK15Y"), dt:"2026-05-01", k:"pdf"}
+     ]}
+    ]
+   },
+   {
+    name:"Managerial Economics", who:"", slot:"",
+    groups:[
+     {t:"الكتب والملخصات", files:[
+       {n:"Managerial Economics.pdf", d:"كتاب المادة (~40MB)", u:F("10nZ74dSetksOS9bZZ5ZlHIi1HXMjuijW"), dt:"2026-04-05", k:"pdf"},
+       {n:"Managerial_Economics_Ch3_Ch4_Bilingual.pdf", d:"الفصلين 3 و4، عربي وإنجليزي", u:F("1EB5OWQ0a3hxV1ZbTtL-BRtMp6JoaPqCU"), dt:"2026-07-14", k:"pdf"},
+       {n:"Economics 19e — Samuelson & Nordhaus", d:"مرجع", u:F("1MiuEmIgbuQW5-YJbNoWgQYI0lAZlLj_R"), dt:"2026-04-05", k:"pdf"},
+       {n:"إنفوجراف: Foundations of Economics", d:"الندرة، الأنظمة الاقتصادية، Micro وMacro", u:F("10UMWDeWn1YZoCQVsVwC8jv9X2VxcVqPq"), dt:"2026-04-15", k:"img"},
+       {n:"إنفوجراف: Essentials of Managerial Economics", d:"PPF، عوامل الإنتاج، القيمة المضافة", u:F("1seUyiSxG5olxU0uNZKtVBo6yX2Idsg2T"), dt:"2026-04-16", k:"img"}
+     ]}
+    ]
+   },
+   {
+    name:"Statistics", who:"stat academy", slot:"",
+    groups:[
+     {t:"الامتحانات والحلول", files:[
+       {n:"MBA_Statistics_Full_Solution", d:"الحل الكامل اللي جهزته", u:D("1bD6yKvue_nZ3gmXMqGy_a5avoV0b2M9hfADw_rFBfe0"), dt:"2026-08-07", k:"doc"},
+       {n:"mba final exam-online-2025.docx", d:"امتحان سابق", u:F("1uSQrDoQr1jQoyqhitH4A7wSusrGzOc_G"), dt:"2026-08-07", k:"doc"},
+       {n:"Theoretical Questions-last.docx", d:"أسئلة نظري", u:F("1_saATJLfjj2XjzrCzNWdodOz1lKpPdYm"), dt:"2026-06-13", k:"doc"},
+       {n:"normal table.docx", d:"جدول التوزيع الطبيعي", u:F("1Ogo69x0RbPKN5cR8wXnNlJ0i7xNARwVY"), dt:"2025-04-17", k:"doc"}
+     ]},
+     {t:"المواد", files:[
+       {n:"stat academy (فولدر)", d:"", u:DIR("19iKgQgfD_Mu8mPUYtYtwbH11BrVvun9q"), dt:"2025-04-17", k:"dir"},
+       {n:"data-set (فولدر)", d:"", u:DIR("12VjVnE9REr68e-ebKeSVB54jllDIRUIx"), dt:"2025-04-17", k:"dir"},
+       {n:"stat academy.zip", d:"نسخة مضغوطة (~7MB)", u:F("1Fylz5dkuwf-LgQNRGESZqaZteIx7S8gF"), dt:"2026-04-05", k:"zip"}
+     ]}
+    ]
+   },
+   {
+    name:"الفولدر المشترك للدفعة", who:"", slot:"",
+    groups:[{t:"", files:[
+      {n:"MBA Saturday morning April 2026 groups 1A & 1B", d:"الفولدر الرئيسي اللي الدفعة بتشارك فيه", u:DIR("1LSmWqpGGUEt-p2M_7W2XOdplVqKHK4eC"), dt:"2026-04-04", k:"dir"}
+    ]}]
+   }
+  ]
+ },
+ {
+  id:"s0", title:"قبل الـ MBA — International Management", period:"يناير 2026 · Group 3V · Dr. Amal Asfour",
+  courses:[
+   {
+    name:"International Management — مشروع الفاينال", who:"Dr. Amal Asfour", slot:"Group 3V",
+    note:"استراتيجية دخول الأسواق العالمية لشركة مصرية في قطاع الطاقة والكهرباء، ومقارنة السعودية وبولندا.",
+    groups:[{t:"العروض", files:[
+      {n:"International-Management.pptx", d:"", u:F("1tZu2VcVe6GfzVvcdRxX1AiDSQEDvOBpk"), dt:"2026-01-20", k:"ppt"},
+      {n:"International-Management (1).pptx", d:"", u:F("1EcPH8gsUl8yYH8PtRmnyajYbfZvx56pK"), dt:"2026-01-20", k:"ppt"},
+      {n:"International-Management (2).pptx", d:"", u:F("1f5LsBHMFlrs1LK2J8wqwrTgqkIc75p-c"), dt:"2026-02-23", k:"ppt"},
+      {n:"International-Management (3).pptx", d:"", u:F("1TFLGDAXHIbNDQTpLVc2aCcVloJX0MrlS"), dt:"2026-02-23", k:"ppt"},
+      {n:"International-Management (4).pptx", d:"", u:F("1LtCig-xYyeMVafzQFf9BR6eV12J3rwek"), dt:"2026-02-23", k:"ppt"},
+      {n:"Market-Attractiveness-Criteria.pptx", d:"السعودية مقابل بولندا", u:F("1BvEGLrVzmysvasbuSSuJTi5Kq9RhuoJC"), dt:"2026-02-23", k:"ppt"},
+      {n:"Management Pattern & International Marketing Mix 4Ps", d:"", u:F("1OIggZ-N-ekSZxQR2K8oM05Ny5IvPU_my"), dt:"2026-02-23", k:"ppt"}
+    ]}]
+   }
+  ]
+ }
+];
+
+const ICON = {pdf:"PDF",doc:"DOC",vid:"▶",dir:"📁",img:"IMG",zip:"ZIP",ppt:"PPT"};
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let tab = store.get("mba.tab") || "s2";
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function stats(){
+  const s2 = DATA[0]; let s2f=0, all=0, vids=0;
+  DATA.forEach(s=>s.courses.forEach(c=>c.groups.forEach(g=>g.files.forEach(f=>{all++; if(f.k==="vid")vids++; if(s.id==="s2")s2f++;}))));
+  const done = (store.get("mba.check")||[]).length;
+  const total = s2.courses[0].checklist.items.length;
+  document.getElementById("stats").innerHTML =
+    `<div class="stat"><b>${s2f}</b><span>ملف في السميستر التاني</span></div>
+     <div class="stat"><b>${all}</b><span>ملف في كل السميسترات</span></div>
+     <div class="stat"><b>${vids}</b><span>تسجيل محاضرة</span></div>
+     <div class="stat"><b>${done}/${total}</b><span>من مشروع التسويق خلص</span></div>`;
+}
+
+function tabs(){
+  const t = [{id:"s2",l:"السميستر التاني ★"},{id:"s1",l:"السميستر الأول"},{id:"s0",l:"قبل الـ MBA"},{id:"all",l:"الكل"}];
+  document.getElementById("tabs").innerHTML = t.map(x=>`<button class="tab" role="tab" aria-selected="${x.id===tab}" data-t="${x.id}">${x.l}</button>`).join("");
+}
+
+function render(){
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const checks = store.get("mba.check")||[];
+  let html = "";
+  DATA.forEach(sem=>{
+    if(!q && tab!=="all" && sem.id!==tab) return;
+    let semHtml = "";
+    sem.courses.forEach(c=>{
+      let body = "";
+      c.groups.forEach(g=>{
+        const files = g.files.filter(f=>!q || (f.n+" "+f.d+" "+c.name).toLowerCase().includes(q));
+        if(!files.length) return;
+        body += (g.t?`<div class="group-title">${esc(g.t)}</div>`:"") + `<ul class="files">` + files.map(f=>
+          `<li><span class="ic">${ICON[f.k]||"•"}</span><div class="f-main"><a href="${f.u}" target="_blank" rel="noopener">${esc(f.n)}</a>${f.d?`<div class="f-desc">${esc(f.d)}</div>`:""}</div><span class="f-date">${f.dt}</span></li>`
+        ).join("") + `</ul>`;
+      });
+      if(!body && q) return;
+      let top = "";
+      if(c.note && !q) top += `<div class="note">${esc(c.note)}</div>`;
+      if(c.checklist && !q){
+        top += `<div class="group-title">${esc(c.checklist.title)}</div><ul class="check">` +
+          c.checklist.items.map((it,i)=>{const d=checks.includes(i);return `<li class="${d?"done":""}"><input type="checkbox" id="ck${i}" data-i="${i}" ${d?"checked":""}><label for="ck${i}"><span>${esc(it)}</span></label></li>`}).join("") + `</ul>`;
+      }
+      semHtml += `<section class="course ${sem.id==="s2"?"s2":""}"><div class="c-head"><h3>${esc(c.name)}</h3><span class="c-meta">${esc([c.who,c.slot].filter(Boolean).join(" · "))}</span></div><div class="c-body">${top}${body}</div></section>`;
+    });
+    if(semHtml) html += `<div class="sem"><div class="sem-head"><h2>${esc(sem.title)}</h2>${sem.current?`<span class="badge hot">الحالي</span>`:""}<span class="badge">${esc(sem.period)}</span></div>${semHtml}</div>`;
+  });
+  document.getElementById("out").innerHTML = html || `<div class="empty">مفيش نتايج</div>`;
+}
+
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b = e.target.closest("[data-t]"); if(!b) return;
+  tab = b.dataset.t; store.set("mba.tab",tab); tabs(); render();
+});
+document.getElementById("q").addEventListener("input",render);
+document.getElementById("out").addEventListener("change",e=>{
+  if(!e.target.matches("input[data-i]")) return;
+  let c = store.get("mba.check")||[]; const i=+e.target.dataset.i;
+  c = e.target.checked ? [...new Set([...c,i])] : c.filter(x=>x!==i);
+  store.set("mba.check",c); render(); stats();
+});
+document.getElementById("theme").addEventListener("click",()=>{
+  const r=document.documentElement, cur=r.dataset.theme ||
+    (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+  r.dataset.theme = cur==="dark"?"light":"dark"; store.set("mba.theme",r.dataset.theme);
+});
+const th = store.get("mba.theme"); if(th) document.documentElement.dataset.theme = th;
+tabs(); stats(); render();
+</script>
+</body>
+</html>

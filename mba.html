@@ -70,6 +70,18 @@ ul.files li:first-child{border-top:0}
 .check input{margin-top:5px;accent-color:var(--ok)}
 .check li.done span{color:var(--dim);text-decoration:line-through}
 .empty{color:var(--dim);padding:20px;text-align:center}
+.dev{background:var(--panel);border:1px dashed var(--border);border-radius:14px;padding:14px 16px;margin-bottom:22px}
+.dev-top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.dev-status{color:var(--dim);font-size:.9rem;margin:4px 0 0}
+.dev-btns{display:flex;gap:8px;flex-wrap:wrap}
+.pbtn{padding:8px 12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border-radius:999px;padding:3px 6px 3px 10px;font-size:.85rem}
+.chip button{border:0;background:none;color:var(--dim);padding:0 4px;font-size:1rem;line-height:1}
+.ic.loc{background:var(--accent-soft);color:var(--accent)}
+.mini{flex:none;border:1px solid var(--border);background:var(--panel);color:var(--dim);border-radius:8px;padding:2px 8px}
+.more{color:var(--dim);font-size:.85rem;padding:6px 0}
+.f-path{color:var(--dim);font-size:.8rem;direction:ltr;text-align:right;word-break:break-all}
 footer{color:var(--dim);font-size:.82rem;margin-top:30px;border-top:1px solid var(--border);padding-top:12px}
 @media (max-width:560px){input[type=search]{min-width:0;flex:1}.tools{width:100%;flex-wrap:nowrap}.f-date{display:none}}
 </style>
@@ -88,6 +100,9 @@ footer{color:var(--dim);font-size:.82rem;margin-top:30px;border-top:1px solid va
   </header>
 
   <div class="stats" id="stats"></div>
+
+  <div class="dev" id="dev"></div>
+  <input type="file" id="dirInput" webkitdirectory multiple hidden>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
 
@@ -271,11 +286,136 @@ function stats(){
     `<div class="stat"><b>${s2f}</b><span>ملف في السميستر التاني</span></div>
      <div class="stat"><b>${all}</b><span>ملف في كل السميسترات</span></div>
      <div class="stat"><b>${vids}</b><span>تسجيل محاضرة</span></div>
-     <div class="stat"><b>${done}/${total}</b><span>من مشروع التسويق خلص</span></div>`;
+     <div class="stat"><b>${done}/${total}</b><span>من مشروع التسويق خلص</span></div>` +
+    (LOCAL.length?`<div class="stat"><b>${LOCAL.length}</b><span>ملف على الجهاز</span></div>`:"");
+}
+
+/* ---------- ملفات الجهاز (Local files) ---------- */
+const KEY = {
+  "Marketing Management (MM_F26)":"mm",
+  "Strategic HRM — تخطيط الموارد البشرية":"hrm",
+  "Contemporary Management":"cm",
+  "Managerial Economics":"me",
+  "Statistics":"st",
+  "International Management — مشروع الفاينال":"im"
+};
+const LABEL = {mm:"Marketing Management",hrm:"Strategic HRM",cm:"Contemporary Management",me:"Managerial Economics",st:"Statistics",im:"International Management",x:"باقي الملفات (غير مصنّفة)"};
+const RULES = [
+  ["mm", /marketing|(^|[^a-z])mm[_\- ]|kotler|sostac|pestle|myopia|consumer.?value|market.?orient|persona|تسويق/i],
+  ["hrm",/(^|[^a-z])hrm?([^a-z]|$)|human.?resource|shrp|vuca|succession|موارد.?بشري/i],
+  ["cm", /contemporary|toyota|swot|(^|[^a-z])tqm|deming|إدارة.?معاصرة/i],
+  ["me", /econom|samuelson|اقتصاد/i],
+  ["st", /stat|normal.?table|regression|hypothesis|anova|احصاء|إحصاء/i],
+  ["im", /international|market.?attractiveness|4ps|دولي/i]
+];
+const SKIP = new Set(["node_modules",".git","$RECYCLE.BIN","System Volume Information","AppData","__pycache__"]);
+const MAX_FILES = 20000;
+const FS_OK = "showDirectoryPicker" in window;
+let ROOTS = [];   // {name, h?, files?, granted}
+let LOCAL = [];   // {i, name, path, root, ext, lc, c, h?, f?}
+let devMsg = "";
+
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("mba-local",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function kvSet(k,v){try{const db=await idb();db.transaction("kv","readwrite").objectStore("kv").put(v,k);}catch(e){}}
+async function kvGet(k){try{const db=await idb();return await new Promise(r=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);});}catch(e){return null}}
+const saveRoots = () => kvSet("roots", ROOTS.filter(r=>r.h).map(r=>r.h));
+
+function classify(lc){for(const [k,re] of RULES){if(re.test(lc))return k;}return "x";}
+function extIcon(e){
+  if(e==="pdf")return"PDF"; if(/^docx?$/.test(e))return"DOC"; if(/^pptx?$/.test(e))return"PPT";
+  if(/^(xlsx?|csv)$/.test(e))return"XLS"; if(/^(mp4|mkv|mov|avi|webm)$/.test(e))return"▶";
+  if(/^(png|jpe?g|webp|gif)$/.test(e))return"IMG"; if(/^(zip|rar|7z)$/.test(e))return"ZIP";
+  return e?e.slice(0,3).toUpperCase():"•";
+}
+function addItem(out,root,path,name,src){
+  const dot=name.lastIndexOf("."), ext=dot>0?name.slice(dot+1).toLowerCase():"";
+  const lc=(root+"/"+path).toLowerCase();
+  out.push(Object.assign({name,path,root,ext,lc,c:classify(lc)},src));
+}
+async function scanDir(dir,root,prefix,out){
+  for await (const [name,h] of dir.entries()){
+    if(out.length>=MAX_FILES) return;
+    if(name.startsWith(".")||name.startsWith("~$")||SKIP.has(name)) continue;
+    const p = prefix?prefix+"/"+name:name;
+    if(h.kind==="directory") await scanDir(h,root,p,out);
+    else addItem(out,root,p,name,{h});
+  }
+}
+async function scanAll(){
+  const out=[];
+  for(const r of ROOTS){
+    if(!r.granted) continue;
+    devMsg = `بفحص "${r.name}"…`; renderDev();
+    try{
+      if(r.h) await scanDir(r.h,r.name,"",out);
+      else r.files.forEach(f=>{const p=f.webkitRelativePath.split("/").slice(1).join("/");addItem(out,r.name,p,f.name,{f});});
+    }catch(e){ r.granted=false; }
+  }
+  out.sort((a,b)=>a.lc.localeCompare(b.lc));
+  out.forEach((f,i)=>f.i=i);
+  LOCAL=out;
+  const n=out.filter(f=>f.c!=="x").length;
+  devMsg = out.length ? `${out.length} ملف من ${ROOTS.filter(r=>r.granted).length} فولدر، ${n} منهم اتصنفوا على المواد تلقائي.` + (out.length>=MAX_FILES?` (وقفت عند ${MAX_FILES} ملف)`:"") : "";
+  renderDev(); stats(); render();
+}
+async function addFolder(){
+  if(!FS_OK){ document.getElementById("dirInput").click(); return; }
+  let h;
+  try{ h = await window.showDirectoryPicker({mode:"read"}); }
+  catch(e){ if(e.name!=="AbortError"){devMsg="المتصفح رفض الفولدر ده (غالبًا فولدر نظام زي C:\\ أو فولدر المستخدم كله). اختار فولدر أصغر زي Documents أو فولدر الماجستير."; renderDev();} return; }
+  for(const r of ROOTS){ if(r.h && await r.h.isSameEntry(h)) { devMsg="الفولدر ده مضاف بالفعل."; renderDev(); return; } }
+  ROOTS.push({name:h.name,h,granted:true}); saveRoots(); scanAll();
+}
+async function regrant(){
+  const res = await Promise.all(ROOTS.map(r=>r.h&&!r.granted?r.h.requestPermission({mode:"read"}).catch(()=>"denied"):Promise.resolve(r.granted?"granted":"denied")));
+  res.forEach((s,i)=>ROOTS[i].granted = s==="granted");
+  scanAll();
+}
+async function openLocal(i){
+  const it=LOCAL[i]; if(!it) return;
+  const w = window.open("","_blank");
+  try{
+    const f = it.f || await it.h.getFile();
+    const url = URL.createObjectURL(f);
+    if(w) w.location = url; else location.href = url;
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){ if(w) w.close(); devMsg="مقدرتش أفتح الملف، ممكن يكون اتنقل أو اتمسح. دوس تحديث."; renderDev(); }
+}
+function renderDev(){
+  const need = ROOTS.some(r=>r.h&&!r.granted);
+  const status = devMsg || (ROOTS.length ? "" :
+    "اختار فولدر أو أكتر من جهازك (زي فولدر الماجستير أو Documents أو Downloads)، وهتظهر كل ملفاته هنا بلينكات محلية، والملفات الخاصة بالمواد هتتحط تحت المادة بتاعتها تلقائي. الملفات مابتتبعتش لأي مكان، كله بيتعمل جوه المتصفح.");
+  document.getElementById("dev").innerHTML =
+    `<div class="dev-top"><div><b>ملفات الجهاز (Local)</b></div>
+      <div class="dev-btns">
+        ${need?`<button class="pbtn" type="button" id="regrant">اسمح بالوصول للفولدرات تاني</button>`:""}
+        <button class="${need?"tbtn":"pbtn"}" type="button" id="addDir">+ أضف فولدر من الجهاز</button>
+        ${ROOTS.length?`<button class="tbtn" type="button" id="rescan">↻ تحديث</button>`:""}
+      </div></div>
+     ${status?`<p class="dev-status">${esc(status)}</p>`:""}
+     ${!FS_OK?`<p class="dev-status">المتصفح ده مش بيحفظ الفولدرات بعد ما تقفل الصفحة. استخدم Chrome أو Edge عشان تتحفظ.</p>`:""}
+     ${ROOTS.length?`<div class="chips">${ROOTS.map((r,i)=>`<span class="chip">📁 ${esc(r.name)}${r.granted?"":" (محتاج إذن)"}<button type="button" data-rm="${i}" aria-label="شيل الفولدر">×</button></span>`).join("")}</div>`:""}`;
+}
+function localList(items,cap){
+  const shown=items.slice(0,cap);
+  return `<ul class="files">`+shown.map(f=>
+    `<li><span class="ic loc">${extIcon(f.ext)}</span><div class="f-main"><a href="#" data-loc="${f.i}">${esc(f.name)}</a><div class="f-path">${esc(f.root+"/"+f.path)}</div></div><button class="mini" type="button" data-copy="${f.i}" title="نسخ المسار">⧉</button></li>`
+  ).join("")+`</ul>`+(items.length>cap?`<div class="more">و ${items.length-cap} ملف كمان، استخدم البحث عشان توصلهم</div>`:"");
+}
+function deviceSection(q,onlyUnclassified){
+  if(!LOCAL.length) return tab==="dev"?`<div class="empty">لسه مفيش فولدرات مربوطة. دوس "أضف فولدر من الجهاز" فوق.</div>`:"";
+  let html="";
+  Object.keys(LABEL).forEach(k=>{
+    if(onlyUnclassified && k!=="x") return;
+    const items=LOCAL.filter(f=>f.c===k&&(!q||f.lc.includes(q)));
+    if(!items.length) return;
+    html+=`<section class="course"><div class="c-head"><h3>${esc(LABEL[k])}</h3><span class="c-meta">${items.length} ملف على الجهاز</span></div><div class="c-body">${localList(items,q?100:(k==="x"?150:60))}</div></section>`;
+  });
+  return html?`<div class="sem"><div class="sem-head"><h2>ملفات الجهاز</h2><span class="badge">Local</span></div>${html}</div>`:"";
 }
 
 function tabs(){
-  const t = [{id:"s2",l:"السميستر التاني ★"},{id:"s1",l:"السميستر الأول"},{id:"s0",l:"قبل الـ MBA"},{id:"all",l:"الكل"}];
+  const t = [{id:"s2",l:"السميستر التاني ★"},{id:"s1",l:"السميستر الأول"},{id:"s0",l:"قبل الـ MBA"},{id:"dev",l:"على الجهاز"},{id:"all",l:"الكل"}];
   document.getElementById("tabs").innerHTML = t.map(x=>`<button class="tab" role="tab" aria-selected="${x.id===tab}" data-t="${x.id}">${x.l}</button>`).join("");
 }
 
@@ -283,6 +423,10 @@ function render(){
   const q = document.getElementById("q").value.trim().toLowerCase();
   const checks = store.get("mba.check")||[];
   let html = "";
+  if(tab==="dev" && !q){
+    document.getElementById("out").innerHTML = deviceSection("",false);
+    return;
+  }
   DATA.forEach(sem=>{
     if(!q && tab!=="all" && sem.id!==tab) return;
     let semHtml = "";
@@ -295,6 +439,11 @@ function render(){
           `<li><span class="ic">${ICON[f.k]||"•"}</span><div class="f-main"><a href="${f.u}" target="_blank" rel="noopener">${esc(f.n)}</a>${f.d?`<div class="f-desc">${esc(f.d)}</div>`:""}</div><span class="f-date">${f.dt}</span></li>`
         ).join("") + `</ul>`;
       });
+      const k = KEY[c.name];
+      if(k){
+        const loc = LOCAL.filter(f=>f.c===k && (!q||f.lc.includes(q)));
+        if(loc.length) body += `<div class="group-title">على الجهاز (${loc.length})</div>` + localList(loc, 40);
+      }
       if(!body && q) return;
       let top = "";
       if(c.note && !q) top += `<div class="note">${esc(c.note)}</div>`;
@@ -306,6 +455,7 @@ function render(){
     });
     if(semHtml) html += `<div class="sem"><div class="sem-head"><h2>${esc(sem.title)}</h2>${sem.current?`<span class="badge hot">الحالي</span>`:""}<span class="badge">${esc(sem.period)}</span></div>${semHtml}</div>`;
   });
+  if(q || tab==="all") html += deviceSection(q,true);
   document.getElementById("out").innerHTML = html || `<div class="empty">مفيش نتايج</div>`;
 }
 
@@ -325,8 +475,34 @@ document.getElementById("theme").addEventListener("click",()=>{
     (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
   r.dataset.theme = cur==="dark"?"light":"dark"; store.set("mba.theme",r.dataset.theme);
 });
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const a=t.closest("[data-loc]"); if(a){ e.preventDefault(); openLocal(+a.dataset.loc); return; }
+  const cp=t.closest("[data-copy]"); if(cp){ const f=LOCAL[+cp.dataset.copy]; const s=f.root+"/"+f.path;
+    (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>{cp.textContent="✓";setTimeout(()=>cp.textContent="⧉",1200);}).catch(()=>prompt("المسار:",s)); return; }
+  const rm=t.closest("[data-rm]"); if(rm){ ROOTS.splice(+rm.dataset.rm,1); saveRoots(); devMsg=""; scanAll(); return; }
+  if(t.id==="addDir") addFolder();
+  else if(t.id==="regrant") regrant();
+  else if(t.id==="rescan") { devMsg=""; scanAll(); }
+});
+document.getElementById("dirInput").addEventListener("change",e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  const name=files[0].webkitRelativePath.split("/")[0]||"فولدر";
+  ROOTS.push({name,files,granted:true}); e.target.value=""; scanAll();
+});
 const th = store.get("mba.theme"); if(th) document.documentElement.dataset.theme = th;
-tabs(); stats(); render();
+tabs(); stats(); renderDev(); render();
+(async()=>{
+  const hs = await kvGet("roots");
+  if(!hs || !hs.length) return;
+  for(const h of hs){
+    let g=false; try{ g = (await h.queryPermission({mode:"read"}))==="granted"; }catch(e){}
+    ROOTS.push({name:h.name,h,granted:g});
+  }
+  if(ROOTS.some(r=>!r.granted)) devMsg="الفولدرات محفوظة، بس المتصفح محتاج تسمحله يقراها تاني. دوس الزرار.";
+  renderDev();
+  if(ROOTS.some(r=>r.granted)) scanAll();
+})();
 </script>
 </body>
 </html>
